@@ -68,6 +68,12 @@
   .row.dpp .no { background: #2e9d4f; }
   .row.tpp .no { background: #14b8b0; }
   .who { flex: 0 0 36%; min-width: 0; display: flex; align-items: center; gap: 7px; }
+  .lefty .row { flex-direction: row-reverse; padding: 5px 10px 5px 6px; }
+  .lefty .who { flex-direction: row-reverse; text-align: right; }
+  .flip { border: 0; background: #e4e6ea; color: #444; font-size: 15px; padding: 3px 9px; border-radius: 8px; margin-left: 6px; vertical-align: middle; }
+  .hint-row { display: flex; align-items: center; justify-content: space-between; margin: 2px 4px 0; }
+  .hint-row .hint { margin: 0; }
+  .hint-row .seg button { padding: 4px 10px; font-size: 12px; }
   .no {
     flex: none; background: #1c1c1e; color: #fff; border-radius: 7px; min-width: 26px; text-align: center;
     padding: 2px 0; font-weight: 700; font-size: 15px;
@@ -77,12 +83,12 @@
   .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .party { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ctrl { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: stretch; gap: 6px; }
-  .ctrl button { flex: 0 0 54px; border: 0; border-radius: 10px; font-size: 30px; font-weight: 700; line-height: 1; padding: 0; }
+  .ctrl button { flex: 0 0 52px; border: 0; border-radius: 10px; font-size: 28px; font-weight: 700; line-height: 1; padding: 0; }
   .minus { background: #ffe3e0; color: #c62828; }
   .plus  { background: #dcf3df; color: #1b7a2b; }
   .ctrl button:active { transform: scale(.94); filter: brightness(.95); }
   .count {
-    flex: 1; min-width: 0; width: 100%; text-align: center; font-size: 30px; font-weight: 700;
+    flex: 1; min-width: 0; width: 100%; text-align: center; font-size: 22px; font-weight: 700;
     border: 2px solid #e2e4e8; border-radius: 10px; background: #fafafa; color: inherit; padding: 0;
     font-variant-numeric: tabular-nums;
   }
@@ -92,13 +98,16 @@
 <body>
 <div id="pick" class="screen pick">
   <h1>監票計數</h1>
-  <div class="hint">請選擇縣市長選舉</div>
+  <div class="hint-row">
+    <div class="hint">請選擇縣市長選舉</div>
+    <div class="seg"><span style="font-size:12px;color:#666;padding:4px 6px 0">按鈕</span><button id="posR" class="on">靠右</button><button id="posL">靠左</button></div>
+  </div>
   <div class="regions" id="regions"></div>
 </div>
 
 <div id="counter" class="screen hide">
   <header>
-    <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1></div>
+    <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1><button class="flip" id="flip" aria-label="切換按鈕左右">⇄</button></div>
     <div class="total">合計 <b id="total">0</b> 票<div class="sub" id="sub"></div></div>
   </header>
   <div class="sortbar">
@@ -114,10 +123,10 @@
   <div class="list" id="list"></div>
 </div>
 
-<script src="candidates.js?v=5"></script>
+<script src="candidates.js?v=6"></script>
 <script>
 (function () {
-  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort";
+  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos";
   const pickEl = document.getElementById("pick");
   const counterEl = document.getElementById("counter");
   const listEl = document.getElementById("list");
@@ -172,6 +181,7 @@
     v = Math.max(0, Math.floor(Number(v)) || 0);
     counts[no] = v;
     inputs[no].value = v;
+    inputs[no].style.fontSize = String(v).length >= 5 ? "17px" : "";
     save();
     scheduleOrder();
   }
@@ -210,6 +220,7 @@
       const input = row.querySelector(".count");
       inputs[no] = input; rows[no] = row;
       input.value = counts[no] || 0;
+      if (String(input.value).length >= 5) input.style.fontSize = "17px";
       row.querySelector(".minus").onclick = () => set(no, (counts[no] || 0) - 1);
       row.querySelector(".plus").onclick = () => set(no, (counts[no] || 0) + 1);
       input.addEventListener("focus", () => setTimeout(() => input.select(), 0));
@@ -229,6 +240,17 @@
     save();
     order();
   };
+
+  function setPos(m) {
+    store.set(POS, m);
+    document.body.classList.toggle("lefty", m === "left");
+    document.getElementById("posR").classList.toggle("on", m !== "left");
+    document.getElementById("posL").classList.toggle("on", m === "left");
+  }
+  document.getElementById("posR").onclick = () => setPos("right");
+  document.getElementById("posL").onclick = () => setPos("left");
+  document.getElementById("flip").onclick = () => setPos(document.body.classList.contains("lefty") ? "right" : "left");
+  setPos(store.get(POS) === "left" ? "left" : "right");
 
   document.getElementById("sortNo").onclick = () => setSort("no");
   document.getElementById("sortVotes").onclick = () => setSort("votes");
