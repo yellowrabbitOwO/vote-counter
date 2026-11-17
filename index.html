@@ -54,9 +54,9 @@
   .sortbar .spacer { flex: 1; }
   .sortbar .reset { border: 0; background: transparent; color: #999; font-size: 13px; padding: 6px 4px; }
 
-  .list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 2px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding: 2px 10px calc(8px + env(safe-area-inset-bottom)); }
   .row {
-    flex: 1 1 0; min-height: 0; max-height: 92px;
+    flex: 1 1 0; min-height: 54px; max-height: 92px;
     background: #fff; border-radius: 12px; padding: 5px 6px 5px 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; align-items: center; gap: 8px;
   }
@@ -102,6 +102,19 @@
   .opt .seg.col button { text-align: left; padding: 10px 12px; }
   .opt .seg button { flex: 1; padding: 9px 4px; font-size: 14px; }
   .done { width: 100%; border: 0; background: #3478f6; color: #fff; font-size: 16px; font-weight: 700; padding: 11px; border-radius: 11px; margin-top: 4px; }
+  .modeseg { display: flex; margin: 8px 4px 0; }
+  .modeseg button { flex: 1; padding: 7px 4px; font-size: 15px; }
+  .cities button:disabled { opacity: .35; }
+  .dist { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .dist .grid2 { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-content: start; margin-top: 8px; }
+  .dist .grid2 button { display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; border: 0; border-radius: 12px; background: #fff; padding: 10px 10px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,.08); color: #1c1c1e; }
+  .dist .grid2 button:active { background: #e8eefc; }
+  .dist .t { font-size: 17px; font-weight: 700; }
+  .dist .a { font-size: 13px; color: #555; margin-top: 2px; }
+  .dist .n { font-size: 12px; color: #888; margin-top: 2px; }
+  .dist .dhead { display: flex; align-items: center; margin: 2px 0; }
+  .dist .dhead h1 { font-size: 20px; margin: 0 0 0 4px; }
+  #cityTitle.small { font-size: 15px; }
   .no {
     flex: none; background: #1c1c1e; color: #fff; border-radius: 7px; min-width: 26px; text-align: center;
     padding: 2px 0; font-weight: 700; font-size: 15px;
@@ -127,10 +140,18 @@
 <div id="pick" class="screen pick">
   <h1>監票計數</h1>
   <div class="hint-row">
-    <div class="hint">請選擇縣市長選舉</div>
+    <div class="hint" id="pickHint">請選擇縣市長選舉</div>
     <button class="gear" id="gearPick" aria-label="設定">⚙ 設定</button>
   </div>
-  <div class="regions" id="regions"></div>
+  <div class="seg modeseg"><button id="modeMayor" class="on">縣市長</button><button id="modeCouncil">議員</button></div>
+  <div class="regions cities" id="regions"></div>
+</div>
+
+<div id="dist" class="screen dist hide">
+  <div class="dhead"><button class="back" id="distBack">‹ 換縣市</button><h1 id="distTitle"></h1>
+    <button class="gear" id="gearDist" aria-label="設定" style="margin-left:auto">⚙</button></div>
+  <div class="hint" id="distHint" style="margin:0 4px"></div>
+  <div class="grid2" id="distGrid"></div>
 </div>
 
 <div id="counter" class="screen hide">
@@ -162,67 +183,98 @@
   </div>
 </div>
 
-<script src="candidates.js?v=12"></script>
+<script src="candidates.js?v=13"></script>
 <script>
 (function () {
-  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad";
-  const pickEl = document.getElementById("pick");
-  const counterEl = document.getElementById("counter");
-  const listEl = document.getElementById("list");
-  const totalEl = document.getElementById("total");
-  let city = null, counts = {}, inputs = {}, rows = {}, sortMode = "no", badPos = "bottom", timer = null;
+  const LAST = "vote-counter-last", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad", MODE = "vote-counter-mode";
+  const $ = id => document.getElementById(id);
+  const pickEl = $("pick"), distEl = $("dist"), counterEl = $("counter");
+  const listEl = $("list"), totalEl = $("total");
+  let mode = "mayor";                       // 選縣市畫面目前的模式：mayor / council
+  let ctx = null;                           // 目前計票的內容 { mode, city, di }
+  let cur = null;                           // { list, key, title }
+  let counts = {}, inputs = {}, rows = {}, sortMode = "no", badPos = "bottom", timer = null;
 
-  const key = c => "vote-counter-v2-" + c;
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   };
+  const show = el => { [pickEl, distEl, counterEl].forEach(x => x.classList.toggle("hide", x !== el)); };
+  const remember = v => store.set(LAST, v ? JSON.stringify(v) : "");
 
-  // 縣市選擇
-  const regionsEl = document.getElementById("regions");
-  REGIONS.forEach(r => {
-    const box = document.createElement("div");
-    const h = document.createElement("h2"); h.textContent = r.title;
-    const g = document.createElement("div"); g.className = "grid";
-    r.cities.forEach(c => {
-      const b = document.createElement("button"); b.textContent = c;
-      b.onclick = () => open(c);
-      g.appendChild(b);
+  // ── 選縣市 ──
+  function renderCities() {
+    const box = $("regions");
+    box.innerHTML = "";
+    REGIONS.forEach(r => {
+      const wrap = document.createElement("div");
+      const h = document.createElement("h2"); h.textContent = r.title;
+      const g = document.createElement("div"); g.className = "grid";
+      r.cities.forEach(c => {
+        const b = document.createElement("button"); b.textContent = c;
+        if (mode === "council" && !COUNCIL[c]) b.disabled = true;
+        b.onclick = () => (mode === "mayor" ? openCounter({ mode: "mayor", city: c }) : openDist(c));
+        g.appendChild(b);
+      });
+      wrap.append(h, g);
+      box.appendChild(wrap);
     });
-    box.append(h, g);
-    regionsEl.appendChild(box);
-  });
-
-  function save() {
-    store.set(key(city), JSON.stringify(counts));
-    const valid = CANDIDATES[city].reduce((s, _, i) => s + (counts[i + 1] || 0), 0);
-    const bad = counts.x || 0;
-    totalEl.textContent = valid + bad;
-    document.getElementById("sub").textContent = "有效 " + valid + "・廢票 " + bad;
+  }
+  function setMode(m) {
+    mode = m === "council" ? "council" : "mayor";
+    store.set(MODE, mode);
+    $("modeMayor").classList.toggle("on", mode === "mayor");
+    $("modeCouncil").classList.toggle("on", mode === "council");
+    $("pickHint").textContent = mode === "mayor" ? "請選擇縣市長選舉" : "議員：目前有台北市、新北市";
+    renderCities();
   }
 
-  // 排序：號次 或 得票數（同票看號次）；廢票永遠在最下面
+  // ── 選區（議員） ──
+  function openDist(c) {
+    $("distTitle").textContent = c + "議員";
+    $("distHint").textContent = "請選擇選區（應選席次含婦女保障名額）";
+    const g = $("distGrid"); g.innerHTML = "";
+    COUNCIL[c].forEach((d, i) => {
+      const b = document.createElement("button");
+      b.innerHTML = '<div class="t"></div><div class="a"></div><div class="n"></div>';
+      b.querySelector(".t").textContent = d.label;
+      b.querySelector(".a").textContent = d.area || "　";
+      b.querySelector(".n").textContent = "應選 " + d.seats + " 席・" + d.list.length + " 人";
+      b.onclick = () => openCounter({ mode: "council", city: c, di: i });
+      g.appendChild(b);
+    });
+    remember({ mode: "council", city: c });
+    show(distEl);
+  }
+
+  // ── 計票 ──
+  function save() {
+    store.set(cur.key, JSON.stringify(counts));
+    const valid = cur.list.reduce((s, _, i) => s + (counts[i + 1] || 0), 0);
+    const bad = counts.x || 0;
+    totalEl.textContent = valid + bad;
+    $("sub").textContent = "有效 " + valid + "・廢票 " + bad;
+  }
+
+  // 排序：號次 或 得票數（同票看號次）；廢票依設定固定在最上或最下
   function order() {
-    const nos = CANDIDATES[city].map((_, i) => i + 1);
+    const nos = cur.list.map((_, i) => i + 1);
     if (sortMode === "votes") nos.sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
     if (badPos === "top") nos.unshift("x"); else nos.push("x");
     nos.forEach(n => listEl.appendChild(rows[n]));
   }
-
   // 得票數排序：停手一下才重排，避免連點時列表跳動點錯
   function scheduleOrder() {
     if (sortMode !== "votes") return;
     clearTimeout(timer);
     timer = setTimeout(order, 1200);
   }
-
   // 位數多時縮小字級（CSS 的 len5 / len6）
   function fit(input) {
     const n = String(input.value).length;
     input.classList.toggle("len5", n === 5);
     input.classList.toggle("len6", n >= 6);
   }
-
   function set(no, v) {
     v = Math.max(0, Math.floor(Number(v)) || 0);
     counts[no] = v;
@@ -232,27 +284,27 @@
     scheduleOrder();
   }
 
-  function setSort(m) {
-    sortMode = m;
-    store.set(SORT, m);
-    document.getElementById("sortNo").classList.toggle("on", m === "no");
-    document.getElementById("sortVotes").classList.toggle("on", m === "votes");
-    document.getElementById("refresh").classList.toggle("hide", m !== "votes");
-    clearTimeout(timer);
-    if (city) order();
-  }
-
-  function open(c) {
-    city = c; inputs = {}; rows = {}; counts = {};
-    try { counts = JSON.parse(store.get(key(c))) || {}; } catch (e) {}
-    store.set(LAST, c);
-    document.getElementById("cityTitle").textContent = c + "長";
+  const PARTY = { "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" };
+  function openCounter(c) {
+    ctx = c;
+    if (c.mode === "mayor") {
+      cur = { list: CANDIDATES[c.city], key: "vote-counter-v2-" + c.city, title: c.city + "長" };
+    } else {
+      const d = COUNCIL[c.city][c.di];
+      cur = { list: d.list, key: "vote-counter-v2-議員-" + c.city + "-" + (c.di + 1), title: d.title };
+    }
+    inputs = {}; rows = {}; counts = {};
+    try { counts = JSON.parse(store.get(cur.key)) || {}; } catch (e) {}
+    remember(c);
+    $("cityTitle").textContent = cur.title;
+    $("cityTitle").classList.toggle("small", c.mode === "council");
+    $("back").textContent = c.mode === "council" ? "‹ 選區" : "‹ 換縣市";
     listEl.innerHTML = "";
-    const entries = CANDIDATES[c].map(([name, party], i) => [i + 1, name, party]);
+    const entries = cur.list.map(([name, party], i) => [i + 1, name, party]);
     entries.push(["x", "廢票", ""]);
     entries.forEach(([no, name, party]) => {
       const row = document.createElement("div");
-      row.className = "row" + (no === "x" ? " bad" : ({ "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" }[party] || ""));
+      row.className = "row" + (no === "x" ? " bad" : (PARTY[party] || ""));
       row.innerHTML =
         '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span>' +
           '<div class="txt"><div class="name"></div><div class="party"></div></div></div>' +
@@ -276,67 +328,86 @@
     });
     save();
     order();
-    pickEl.classList.add("hide");
-    counterEl.classList.remove("hide");
+    show(counterEl);
+    listEl.scrollTop = 0;
   }
 
-  document.getElementById("refresh").onclick = () => {
+  // ── 排序 / 重整 / 返回 / 歸零 ──
+  function setSort(m) {
+    sortMode = m;
+    store.set(SORT, m);
+    $("sortNo").classList.toggle("on", m === "no");
+    $("sortVotes").classList.toggle("on", m === "votes");
+    $("refresh").classList.toggle("hide", m !== "votes");
+    clearTimeout(timer);
+    if (cur) order();
+  }
+  $("refresh").onclick = () => {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // 先確認輸入中的數字
     clearTimeout(timer);
     save();
     order();
   };
+  $("sortNo").onclick = () => setSort("no");
+  $("sortVotes").onclick = () => setSort("votes");
 
+  $("back").onclick = () => {
+    clearTimeout(timer);
+    if (ctx && ctx.mode === "council") openDist(ctx.city);
+    else { show(pickEl); remember(null); }
+  };
+  $("distBack").onclick = () => { show(pickEl); remember(null); };
+
+  $("reset").onclick = () => {
+    if (confirm("確定要把「" + cur.title + "」所有票數歸零嗎？"))
+      [...cur.list.map((_, i) => i + 1), "x"].forEach(n => set(n, 0));
+  };
+
+  // ── 設定 ──
   function setPos(m) {
     store.set(POS, m);
     document.body.classList.toggle("lefty", m === "left");
     document.body.classList.toggle("swapped", m === "swap");
-    document.getElementById("posR").classList.toggle("on", m !== "left" && m !== "swap");
-    document.getElementById("posL").classList.toggle("on", m === "left");
-    document.getElementById("posS").classList.toggle("on", m === "swap");
+    $("posR").classList.toggle("on", m !== "left" && m !== "swap");
+    $("posL").classList.toggle("on", m === "left");
+    $("posS").classList.toggle("on", m === "swap");
   }
   function setBad(m) {
     badPos = m === "top" ? "top" : "bottom";
     store.set(BAD, badPos);
-    document.getElementById("badTop").classList.toggle("on", badPos === "top");
-    document.getElementById("badBottom").classList.toggle("on", badPos === "bottom");
-    if (city) order();
+    $("badTop").classList.toggle("on", badPos === "top");
+    $("badBottom").classList.toggle("on", badPos === "bottom");
+    if (cur) order();
   }
-  document.getElementById("posR").onclick = () => setPos("right");
-  document.getElementById("posL").onclick = () => setPos("left");
-  document.getElementById("posS").onclick = () => setPos("swap");
-  document.getElementById("badTop").onclick = () => setBad("top");
-  document.getElementById("badBottom").onclick = () => setBad("bottom");
+  $("posR").onclick = () => setPos("right");
+  $("posL").onclick = () => setPos("left");
+  $("posS").onclick = () => setPos("swap");
+  $("badTop").onclick = () => setBad("top");
+  $("badBottom").onclick = () => setBad("bottom");
 
-  const modal = document.getElementById("modal");
+  const modal = $("modal");
   const openModal = () => modal.classList.remove("hide");
   const closeModal = () => modal.classList.add("hide");
-  document.getElementById("gearPick").onclick = openModal;
-  document.getElementById("gearCounter").onclick = openModal;
-  document.getElementById("modalDone").onclick = closeModal;
+  ["gearPick", "gearDist", "gearCounter"].forEach(id => { $(id).onclick = openModal; });
+  $("modalDone").onclick = closeModal;
   modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+
+  // ── 模式切換、初始化 ──
+  $("modeMayor").onclick = () => setMode("mayor");
+  $("modeCouncil").onclick = () => setMode("council");
+
   setBad(store.get(BAD));
   setPos(["left", "swap"].includes(store.get(POS)) ? store.get(POS) : "right");
+  setSort(store.get(SORT) === "votes" ? "votes" : "no");
+  setMode(store.get(MODE));
 
-  document.getElementById("sortNo").onclick = () => setSort("no");
-  document.getElementById("sortVotes").onclick = () => setSort("votes");
-
-  document.getElementById("back").onclick = () => {
-    clearTimeout(timer);
-    counterEl.classList.add("hide");
-    pickEl.classList.remove("hide");
-    store.set(LAST, "");
-  };
-
-  document.getElementById("reset").onclick = () => {
-    if (confirm("確定要把「" + city + "」所有票數歸零嗎？"))
-      [...CANDIDATES[city].map((_, i) => i + 1), "x"].forEach(n => set(n, 0));
-  };
-
-  const savedSort = store.get(SORT);
-  setSort(savedSort === "votes" ? "votes" : "no");
-  const last = store.get(LAST);
-  if (last && CANDIDATES[last]) open(last);
+  let last = null;
+  try { last = JSON.parse(store.get(LAST)); } catch (e) {}
+  if (last && last.mode === "mayor" && CANDIDATES[last.city]) openCounter(last);
+  else if (last && last.mode === "council" && COUNCIL[last.city]) {
+    setMode("council");
+    if (COUNCIL[last.city][last.di]) openCounter(last); else openDist(last.city);
+  }
 })();
 </script>
 </body>
