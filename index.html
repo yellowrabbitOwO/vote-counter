@@ -76,7 +76,7 @@
   <div class="tools"><button id="reset">全部歸零</button></div>
 </div>
 
-<script src="candidates.js"></script>
+<script src="candidates.js?v=3"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city";
@@ -166,24 +166,6 @@
 
   const last = store.get(LAST);
   if (last && CANDIDATES[last]) open(last);
-})();
-</script>
-et(c.no, (counts[c.no] || 0) + 1);
-
-    input.addEventListener("focus", () => setTimeout(() => input.select(), 0));
-    input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, ""); });
-    const commit = () => set(c.no, input.value);
-    input.addEventListener("blur", commit);
-    input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
-
-    listEl.appendChild(row);
-  });
-
-  document.getElementById("reset").onclick = () => {
-    if (confirm("確定要把所有票數歸零嗎？")) CANDIDATES.forEach(c => set(c.no, 0));
-  };
-
-  save();
 })();
 </script>
 </body>
