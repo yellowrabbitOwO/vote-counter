@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="candidates.js?v=19"></script>
+<script src="candidates.js?v=20"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad", MODE = "vote-counter-mode";
@@ -210,7 +210,8 @@
       const g = document.createElement("div"); g.className = "grid"; g.style.gridTemplateColumns = "1fr";
       REFERENDUM.forEach((r, i) => {
         const b = document.createElement("button");
-        b.innerHTML = '<div class="t"></div><div class="a"></div><div class="n">同意／不同意</div>';
+        b.style.cssText = "height:auto;min-height:150px;padding:20px 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px";
+        b.innerHTML = '<div class="t" style="font-size:20px;color:#666"></div><div class="a" style="font-size:32px;font-weight:700"></div><div class="n" style="font-size:18px;color:#666">同意／不同意</div>';
         b.querySelector(".t").textContent = "第" + r.no + "案";
         b.querySelector(".a").textContent = r.name;
         b.onclick = () => openCounter({ mode: "ref", di: i });
