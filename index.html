@@ -76,10 +76,10 @@
   .lefty .row .who { order: 1; flex: 1 1 0; gap: 5px; }
   .lefty .row .who .name { font-size: 16px; }
   .lefty .row .count { order: 2; flex: 0 0 100px; width: 100px; align-self: stretch; font-size: 28px; }
-  /* 對調：[名字] [+] [數字] [−] */
-  .swapped .ctrl .plus { order: 0; }
-  .swapped .ctrl .count { order: 1; }
-  .swapped .ctrl .minus { order: 2; }
+  /* 數字在前：[名字] [數字] [−] [+] */
+  .swapped .ctrl .count { order: 0; }
+  .swapped .ctrl .minus { order: 1; }
+  .swapped .ctrl .plus { order: 2; }
   .count.len5 { font-size: 17px; }
   .count.len6 { font-size: 14px; }
   .lefty .row .count.len5 { font-size: 24px; }
@@ -156,12 +156,12 @@
     <div class="opt"><div class="lab">廢票位置</div>
       <div class="seg"><button id="badTop">固定最上</button><button id="badBottom">固定最下</button></div></div>
     <div class="opt"><div class="lab">按鈕排法</div>
-      <div class="seg col"><button id="posR">一般　[−] 數字 [+]</button><button id="posL">減號靠左　[−] 名字 數字 [+]</button><button id="posS">對調　名字 [+] 數字 [−]</button></div></div>
+      <div class="seg col"><button id="posR">一般　[−] 數字 [+]</button><button id="posL">減號靠左　[−] 名字 數字 [+]</button><button id="posS">數字在前　名字 數字 [−] [+]</button></div></div>
     <button class="done" id="modalDone">完成</button>
   </div>
 </div>
 
-<script src="candidates.js?v=10"></script>
+<script src="candidates.js?v=11"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad";
