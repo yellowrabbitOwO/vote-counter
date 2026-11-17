@@ -76,6 +76,10 @@
   .lefty .row .who { order: 1; flex: 1 1 0; gap: 5px; }
   .lefty .row .who .name { font-size: 16px; }
   .lefty .row .count { order: 2; flex: 0 0 100px; width: 100px; align-self: stretch; font-size: 28px; }
+  /* 對調：[名字] [+] [數字] [−] */
+  .swapped .ctrl .plus { order: 0; }
+  .swapped .ctrl .count { order: 1; }
+  .swapped .ctrl .minus { order: 2; }
   .count.len5 { font-size: 17px; }
   .count.len6 { font-size: 14px; }
   .lefty .row .count.len5 { font-size: 24px; }
@@ -93,6 +97,8 @@
   .opt { margin-bottom: 14px; }
   .opt .lab { font-size: 13px; color: #666; margin-bottom: 6px; }
   .opt .seg { display: flex; }
+  .opt .seg.col { flex-direction: column; gap: 2px; }
+  .opt .seg.col button { text-align: left; padding: 10px 12px; }
   .opt .seg button { flex: 1; padding: 9px 4px; font-size: 14px; }
   .done { width: 100%; border: 0; background: #3478f6; color: #fff; font-size: 16px; font-weight: 700; padding: 11px; border-radius: 11px; margin-top: 4px; }
   .no {
@@ -149,13 +155,13 @@
     <h3>設定</h3>
     <div class="opt"><div class="lab">廢票位置</div>
       <div class="seg"><button id="badTop">固定最上</button><button id="badBottom">固定最下</button></div></div>
-    <div class="opt"><div class="lab">減號位置</div>
-      <div class="seg"><button id="posR">一般（右側）</button><button id="posL">靠左（名字左邊）</button></div></div>
+    <div class="opt"><div class="lab">按鈕排法</div>
+      <div class="seg col"><button id="posR">一般　[−] 數字 [+]</button><button id="posL">減號靠左　[−] 名字 數字 [+]</button><button id="posS">對調　名字 [+] 數字 [−]</button></div></div>
     <button class="done" id="modalDone">完成</button>
   </div>
 </div>
 
-<script src="candidates.js?v=9"></script>
+<script src="candidates.js?v=10"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad";
@@ -283,8 +289,10 @@
   function setPos(m) {
     store.set(POS, m);
     document.body.classList.toggle("lefty", m === "left");
-    document.getElementById("posR").classList.toggle("on", m !== "left");
+    document.body.classList.toggle("swapped", m === "swap");
+    document.getElementById("posR").classList.toggle("on", m !== "left" && m !== "swap");
     document.getElementById("posL").classList.toggle("on", m === "left");
+    document.getElementById("posS").classList.toggle("on", m === "swap");
   }
   function setBad(m) {
     badPos = m === "top" ? "top" : "bottom";
@@ -295,6 +303,7 @@
   }
   document.getElementById("posR").onclick = () => setPos("right");
   document.getElementById("posL").onclick = () => setPos("left");
+  document.getElementById("posS").onclick = () => setPos("swap");
   document.getElementById("badTop").onclick = () => setBad("top");
   document.getElementById("badBottom").onclick = () => setBad("bottom");
 
@@ -306,7 +315,7 @@
   document.getElementById("modalDone").onclick = closeModal;
   modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
   setBad(store.get(BAD));
-  setPos(store.get(POS) === "left" ? "left" : "right");
+  setPos(["left", "swap"].includes(store.get(POS)) ? store.get(POS) : "right");
 
   document.getElementById("sortNo").onclick = () => setSort("no");
   document.getElementById("sortVotes").onclick = () => setSort("votes");
