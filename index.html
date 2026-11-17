@@ -81,10 +81,20 @@
   .lefty .row .count.len5 { font-size: 24px; }
   .lefty .row .count.len6 { font-size: 19px; }
   .lefty .row .plus { order: 3; flex: 0 0 48px; align-self: stretch; }
-  .flip { border: 0; background: #e4e6ea; color: #444; font-size: 15px; padding: 3px 9px; border-radius: 8px; margin-left: 6px; vertical-align: middle; }
+  
   .hint-row { display: flex; align-items: center; justify-content: space-between; margin: 2px 4px 0; }
   .hint-row .hint { margin: 0; }
   .hint-row .seg button { padding: 4px 10px; font-size: 12px; }
+  .gear { border: 0; background: #e4e6ea; color: #444; font-size: 14px; padding: 5px 10px; border-radius: 8px; margin-left: 6px; }
+  .hint-row .gear { margin: 0; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 20px; }
+  .card { background: #fff; border-radius: 16px; padding: 18px; width: 100%; max-width: 340px; }
+  .card h3 { margin: 0 0 12px; font-size: 18px; }
+  .opt { margin-bottom: 14px; }
+  .opt .lab { font-size: 13px; color: #666; margin-bottom: 6px; }
+  .opt .seg { display: flex; }
+  .opt .seg button { flex: 1; padding: 9px 4px; font-size: 14px; }
+  .done { width: 100%; border: 0; background: #3478f6; color: #fff; font-size: 16px; font-weight: 700; padding: 11px; border-radius: 11px; margin-top: 4px; }
   .no {
     flex: none; background: #1c1c1e; color: #fff; border-radius: 7px; min-width: 26px; text-align: center;
     padding: 2px 0; font-weight: 700; font-size: 15px;
@@ -111,14 +121,14 @@
   <h1>監票計數</h1>
   <div class="hint-row">
     <div class="hint">請選擇縣市長選舉</div>
-    <div class="seg"><span style="font-size:12px;color:#666;padding:4px 6px 0">按鈕</span><button id="posR" class="on">一般</button><button id="posL">減號靠左</button></div>
+    <button class="gear" id="gearPick" aria-label="設定">⚙ 設定</button>
   </div>
   <div class="regions" id="regions"></div>
 </div>
 
 <div id="counter" class="screen hide">
   <header>
-    <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1><button class="flip" id="flip" aria-label="切換按鈕左右">⇄</button></div>
+    <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1><button class="gear" id="gearCounter" aria-label="設定">⚙</button></div>
     <div class="total">合計 <b id="total">0</b> 票<div class="sub" id="sub"></div></div>
   </header>
   <div class="sortbar">
@@ -134,15 +144,26 @@
   <div class="list" id="list"></div>
 </div>
 
-<script src="candidates.js?v=8"></script>
+<div id="modal" class="modal hide">
+  <div class="card" role="dialog" aria-label="設定">
+    <h3>設定</h3>
+    <div class="opt"><div class="lab">廢票位置</div>
+      <div class="seg"><button id="badTop">固定最上</button><button id="badBottom">固定最下</button></div></div>
+    <div class="opt"><div class="lab">減號位置</div>
+      <div class="seg"><button id="posR">一般（右側）</button><button id="posL">靠左（名字左邊）</button></div></div>
+    <button class="done" id="modalDone">完成</button>
+  </div>
+</div>
+
+<script src="candidates.js?v=9"></script>
 <script>
 (function () {
-  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos";
+  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad";
   const pickEl = document.getElementById("pick");
   const counterEl = document.getElementById("counter");
   const listEl = document.getElementById("list");
   const totalEl = document.getElementById("total");
-  let city = null, counts = {}, inputs = {}, rows = {}, sortMode = "no", timer = null;
+  let city = null, counts = {}, inputs = {}, rows = {}, sortMode = "no", badPos = "bottom", timer = null;
 
   const key = c => "vote-counter-v2-" + c;
   const store = {
@@ -177,7 +198,7 @@
   function order() {
     const nos = CANDIDATES[city].map((_, i) => i + 1);
     if (sortMode === "votes") nos.sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
-    nos.push("x");
+    if (badPos === "top") nos.unshift("x"); else nos.push("x");
     nos.forEach(n => listEl.appendChild(rows[n]));
   }
 
@@ -265,9 +286,26 @@
     document.getElementById("posR").classList.toggle("on", m !== "left");
     document.getElementById("posL").classList.toggle("on", m === "left");
   }
+  function setBad(m) {
+    badPos = m === "top" ? "top" : "bottom";
+    store.set(BAD, badPos);
+    document.getElementById("badTop").classList.toggle("on", badPos === "top");
+    document.getElementById("badBottom").classList.toggle("on", badPos === "bottom");
+    if (city) order();
+  }
   document.getElementById("posR").onclick = () => setPos("right");
   document.getElementById("posL").onclick = () => setPos("left");
-  document.getElementById("flip").onclick = () => setPos(document.body.classList.contains("lefty") ? "right" : "left");
+  document.getElementById("badTop").onclick = () => setBad("top");
+  document.getElementById("badBottom").onclick = () => setBad("bottom");
+
+  const modal = document.getElementById("modal");
+  const openModal = () => modal.classList.remove("hide");
+  const closeModal = () => modal.classList.add("hide");
+  document.getElementById("gearPick").onclick = openModal;
+  document.getElementById("gearCounter").onclick = openModal;
+  document.getElementById("modalDone").onclick = closeModal;
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+  setBad(store.get(BAD));
   setPos(store.get(POS) === "left" ? "left" : "right");
 
   document.getElementById("sortNo").onclick = () => setSort("no");
