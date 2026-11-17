@@ -55,6 +55,13 @@
     background: #fff; border-radius: 12px; padding: 5px 6px 5px 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; align-items: center; gap: 8px;
   }
+  .row { border: 2px solid transparent; }
+  .row.kmt { border-color: #2f6fd6; background: #eef4ff; }
+  .row.dpp { border-color: #2e9d4f; background: #eefaf1; }
+  .row.tpp { border-color: #14b8b0; background: #ecfbfa; }
+  .row.kmt .no { background: #2f6fd6; }
+  .row.dpp .no { background: #2e9d4f; }
+  .row.tpp .no { background: #14b8b0; }
   .who { flex: 0 0 36%; min-width: 0; display: flex; align-items: center; gap: 7px; }
   .no {
     flex: none; background: #1c1c1e; color: #fff; border-radius: 7px; min-width: 26px; text-align: center;
@@ -182,7 +189,7 @@
     entries.push(["x", "廢票", ""]);
     entries.forEach(([no, name, party]) => {
       const row = document.createElement("div");
-      row.className = "row";
+      row.className = "row" + ({ "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" }[party] || "");
       row.innerHTML =
         '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span>' +
           '<div class="txt"><div class="name"></div><div class="party"></div></div></div>' +
