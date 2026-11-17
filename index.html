@@ -71,10 +71,16 @@
   /* 減號靠左：[−] [號碼 名字] [數字] [+] */
   .lefty .row { padding: 5px 6px; }
   .lefty .ctrl { display: contents; }
-  .lefty .row .minus { order: 0; flex: 0 0 52px; align-self: stretch; }
-  .lefty .row .who { order: 1; flex: 1 1 0; }
-  .lefty .row .count { order: 2; flex: 0 0 74px; width: 74px; align-self: stretch; }
-  .lefty .row .plus { order: 3; flex: 0 0 52px; align-self: stretch; }
+  .lefty .row { gap: 6px; }
+  .lefty .row .minus { order: 0; flex: 0 0 48px; align-self: stretch; }
+  .lefty .row .who { order: 1; flex: 1 1 0; gap: 5px; }
+  .lefty .row .who .name { font-size: 16px; }
+  .lefty .row .count { order: 2; flex: 0 0 100px; width: 100px; align-self: stretch; font-size: 28px; }
+  .count.len5 { font-size: 17px; }
+  .count.len6 { font-size: 14px; }
+  .lefty .row .count.len5 { font-size: 24px; }
+  .lefty .row .count.len6 { font-size: 19px; }
+  .lefty .row .plus { order: 3; flex: 0 0 48px; align-self: stretch; }
   .flip { border: 0; background: #e4e6ea; color: #444; font-size: 15px; padding: 3px 9px; border-radius: 8px; margin-left: 6px; vertical-align: middle; }
   .hint-row { display: flex; align-items: center; justify-content: space-between; margin: 2px 4px 0; }
   .hint-row .hint { margin: 0; }
@@ -128,7 +134,7 @@
   <div class="list" id="list"></div>
 </div>
 
-<script src="candidates.js?v=7"></script>
+<script src="candidates.js?v=8"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos";
@@ -182,11 +188,18 @@
     timer = setTimeout(order, 1200);
   }
 
+  // 位數多時縮小字級（CSS 的 len5 / len6）
+  function fit(input) {
+    const n = String(input.value).length;
+    input.classList.toggle("len5", n === 5);
+    input.classList.toggle("len6", n >= 6);
+  }
+
   function set(no, v) {
     v = Math.max(0, Math.floor(Number(v)) || 0);
     counts[no] = v;
     inputs[no].value = v;
-    inputs[no].style.fontSize = String(v).length >= 5 ? "17px" : "";
+    fit(inputs[no]);
     save();
     scheduleOrder();
   }
@@ -225,7 +238,7 @@
       const input = row.querySelector(".count");
       inputs[no] = input; rows[no] = row;
       input.value = counts[no] || 0;
-      if (String(input.value).length >= 5) input.style.fontSize = "17px";
+      fit(input);
       row.querySelector(".minus").onclick = () => set(no, (counts[no] || 0) - 1);
       row.querySelector(".plus").onclick = () => set(no, (counts[no] || 0) + 1);
       input.addEventListener("focus", () => setTimeout(() => input.select(), 0));
