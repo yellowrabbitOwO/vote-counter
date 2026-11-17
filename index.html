@@ -61,6 +61,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; align-items: center; gap: 8px;
   }
   .row { border: 2px solid transparent; }
+  .row.bad { background: #e3e4e8; border-color: #9a9da5; }
   .row.kmt { border-color: #2f6fd6; background: #eef4ff; }
   .row.dpp { border-color: #2e9d4f; background: #eefaf1; }
   .row.tpp { border-color: #14b8b0; background: #ecfbfa; }
@@ -161,7 +162,7 @@
   </div>
 </div>
 
-<script src="candidates.js?v=11"></script>
+<script src="candidates.js?v=12"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad";
@@ -251,7 +252,7 @@
     entries.push(["x", "廢票", ""]);
     entries.forEach(([no, name, party]) => {
       const row = document.createElement("div");
-      row.className = "row" + ({ "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" }[party] || "");
+      row.className = "row" + (no === "x" ? " bad" : ({ "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" }[party] || ""));
       row.innerHTML =
         '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span>' +
           '<div class="txt"><div class="name"></div><div class="party"></div></div></div>' +
