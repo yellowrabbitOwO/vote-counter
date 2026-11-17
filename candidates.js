@@ -3205,7 +3205,7 @@ const COUNCIL = {
   },
   {
    "label": "第4選區",
-   "area": "",
+   "area": "楠西、南化、玉井、左鎮",
    "seats": 0,
    "title": "台南4區議員",
    "list": [
@@ -3221,8 +3221,8 @@ const COUNCIL = {
   },
   {
    "label": "第5選區",
-   "area": "",
-   "seats": 0,
+   "area": "善化、新市、新化、安定、山上",
+   "seats": 5,
    "title": "台南5區議員",
    "list": [
     [
@@ -3257,7 +3257,7 @@ const COUNCIL = {
   },
   {
    "label": "第6選區",
-   "area": "",
+   "area": "安南",
    "seats": 0,
    "title": "台南6區議員",
    "list": [
@@ -3301,7 +3301,7 @@ const COUNCIL = {
   },
   {
    "label": "第7選區",
-   "area": "",
+   "area": "永康",
    "seats": 0,
    "title": "台南7區議員",
    "list": [
@@ -3353,7 +3353,7 @@ const COUNCIL = {
   },
   {
    "label": "第8選區",
-   "area": "",
+   "area": "北區、中西區",
    "seats": 0,
    "title": "台南8區議員",
    "list": [
@@ -3405,7 +3405,7 @@ const COUNCIL = {
   },
   {
    "label": "第9選區",
-   "area": "",
+   "area": "安平、南區",
    "seats": 0,
    "title": "台南9區議員",
    "list": [
@@ -3449,7 +3449,7 @@ const COUNCIL = {
   },
   {
    "label": "第10選區",
-   "area": "",
+   "area": "東區",
    "seats": 0,
    "title": "台南10區議員",
    "list": [
@@ -3485,7 +3485,7 @@ const COUNCIL = {
   },
   {
    "label": "第11選區",
-   "area": "",
+   "area": "南關線區",
    "seats": 0,
    "title": "台南11區議員",
    "list": [
