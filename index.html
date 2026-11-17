@@ -57,6 +57,7 @@
   .grid button:active { background: #e8eefc; }
   .back { border: 0; background: transparent; color: #3478f6; font-size: 15px; padding: 6px 4px; }
   .who .party { font-size: 13px; color: #888; }
+  .who .no.bad { background: #8e8e93; }
   .hide { display: none !important; }
 </style>
 </head>
@@ -70,13 +71,13 @@
 <div id="counter" class="hide">
   <header>
     <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1></div>
-    <div class="total">合計 <b id="total">0</b> 票</div>
+    <div class="total">合計 <b id="total">0</b> 票<div id="sub" style="font-size:12px;text-align:right"></div></div>
   </header>
   <div class="list" id="list"></div>
   <div class="tools"><button id="reset">全部歸零</button></div>
 </div>
 
-<script src="candidates.js?v=3"></script>
+<script src="candidates.js?v=4"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last-city";
@@ -107,7 +108,10 @@
 
   function save() {
     store.set(key(city), JSON.stringify(counts));
-    totalEl.textContent = CANDIDATES[city].reduce((s, _, i) => s + (counts[i + 1] || 0), 0);
+    const valid = CANDIDATES[city].reduce((s, _, i) => s + (counts[i + 1] || 0), 0);
+    const bad = counts.x || 0;
+    totalEl.textContent = valid + bad;
+    document.getElementById("sub").textContent = "有效 " + valid + "・廢票 " + bad;
   }
 
   function set(no, v) {
@@ -123,12 +127,13 @@
     store.set(LAST, c);
     document.getElementById("cityTitle").textContent = c + "長";
     listEl.innerHTML = "";
-    CANDIDATES[c].forEach(([name, party], i) => {
-      const no = i + 1;
+    const entries = CANDIDATES[c].map(([name, party], i) => [i + 1, name, party]);
+    entries.push(["x", "廢票", ""]);
+    entries.forEach(([no, name, party]) => {
       const row = document.createElement("div");
       row.className = "row";
       row.innerHTML =
-        '<div class="who"><span class="no">' + no + '</span><span class="name"></span><span class="party"></span></div>' +
+        '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span><span class="name"></span><span class="party"></span></div>' +
         '<div class="ctrl">' +
           '<button class="minus" aria-label="減一票">−</button>' +
           '<input class="count" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">' +
@@ -161,7 +166,7 @@
 
   document.getElementById("reset").onclick = () => {
     if (confirm("確定要把「" + city + "」所有票數歸零嗎？"))
-      CANDIDATES[city].forEach((_, i) => set(i + 1, 0));
+      [...CANDIDATES[city].map((_, i) => i + 1), "x"].forEach(n => set(n, 0));
   };
 
   const last = store.get(LAST);
