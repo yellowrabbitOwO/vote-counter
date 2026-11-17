@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="candidates.js?v=15"></script>
+<script src="candidates.js?v=16"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad", MODE = "vote-counter-mode";
@@ -225,7 +225,7 @@
     store.set(MODE, mode);
     $("modeMayor").classList.toggle("on", mode === "mayor");
     $("modeCouncil").classList.toggle("on", mode === "council");
-    $("pickHint").textContent = mode === "mayor" ? "請選擇縣市長選舉" : "議員：目前有台北市、新北市、基隆市、新竹縣、桃園市、新竹市";
+    $("pickHint").textContent = mode === "mayor" ? "請選擇縣市長選舉" : "議員：目前有台北市、新北市、基隆市、新竹縣、桃園市、新竹市、台中市";
     renderCities();
   }
 
