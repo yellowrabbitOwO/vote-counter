@@ -46,6 +46,11 @@
     border: 0; background: transparent; font-size: 13px; padding: 5px 12px; border-radius: 7px; color: #444;
   }
   .seg button.on { background: #fff; color: #1c1c1e; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .sortbar .refresh {
+    border: 0; background: #3478f6; color: #fff; font-size: 13px; font-weight: 700;
+    padding: 6px 11px; border-radius: 9px;
+  }
+  .sortbar .refresh:active { filter: brightness(.9); }
   .sortbar .spacer { flex: 1; }
   .sortbar .reset { border: 0; background: transparent; color: #999; font-size: 13px; padding: 6px 4px; }
 
@@ -102,6 +107,7 @@
       <button id="sortNo" class="on">號次</button>
       <button id="sortVotes">得票數</button>
     </div>
+    <button class="refresh hide" id="refresh">↻ 重整</button>
     <div class="spacer"></div>
     <button class="reset" id="reset">全部歸零</button>
   </div>
@@ -175,6 +181,7 @@
     store.set(SORT, m);
     document.getElementById("sortNo").classList.toggle("on", m === "no");
     document.getElementById("sortVotes").classList.toggle("on", m === "votes");
+    document.getElementById("refresh").classList.toggle("hide", m !== "votes");
     clearTimeout(timer);
     if (city) order();
   }
@@ -215,6 +222,13 @@
     pickEl.classList.add("hide");
     counterEl.classList.remove("hide");
   }
+
+  document.getElementById("refresh").onclick = () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // 先確認輸入中的數字
+    clearTimeout(timer);
+    save();
+    order();
+  };
 
   document.getElementById("sortNo").onclick = () => setSort("no");
   document.getElementById("sortVotes").onclick = () => setSort("votes");
