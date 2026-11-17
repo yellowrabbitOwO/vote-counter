@@ -28,6 +28,7 @@
     font-weight: 700; font-size: 16px;
   }
   .who .name { font-size: 18px; font-weight: 600; }
+  .who .party { font-size: 13px; color: #888; }
   .ctrl { display: flex; align-items: center; gap: 10px; }
   .ctrl button {
     width: 72px; height: 64px; border: 0; border-radius: 14px; font-size: 36px; font-weight: 700;
@@ -50,7 +51,7 @@
 </head>
 <body>
 <header>
-  <h1>監票計數</h1>
+  <h1>監票計數・台北市長</h1>
   <div class="total">合計 <b id="total">0</b> 票</div>
 </header>
 <div class="list" id="list"></div>
@@ -83,13 +84,14 @@
     const row = document.createElement("div");
     row.className = "row";
     row.innerHTML =
-      '<div class="who"><span class="no">' + c.no + '</span><span class="name"></span></div>' +
+      '<div class="who"><span class="no">' + c.no + '</span><span class="name"></span><span class="party"></span></div>' +
       '<div class="ctrl">' +
         '<button class="minus" aria-label="減一票">−</button>' +
         '<input class="count" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">' +
         '<button class="plus" aria-label="加一票">+</button>' +
       '</div>';
     row.querySelector(".name").textContent = c.name;
+    row.querySelector(".party").textContent = c.party || "";
     const input = row.querySelector(".count");
     inputs[c.no] = input;
     input.value = counts[c.no] || 0;
