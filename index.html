@@ -2,90 +2,114 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>監票計數</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
   body {
-    margin: 0; font-family: -apple-system, "Noto Sans TC", "PingFang TC", sans-serif;
-    background: #f4f5f7; color: #1c1c1e; padding-bottom: 40px;
+    font-family: -apple-system, "Noto Sans TC", "PingFang TC", sans-serif;
+    background: #f4f5f7; color: #1c1c1e;
   }
+  .screen { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+  .hide { display: none !important; }
+  button { font-family: inherit; touch-action: manipulation; user-select: none; }
+
+  /* 選縣市 */
+  .pick { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .pick h1 { font-size: 20px; margin: 4px 4px 0; }
+  .pick .hint { color: #666; font-size: 13px; margin: 2px 4px 0; }
+  .pick .regions { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-evenly; }
+  .pick h2 { font-size: 13px; color: #888; margin: 6px 4px 4px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grid button {
+    height: min(48px, 6vh); min-height: 38px; border: 0; border-radius: 10px; background: #fff;
+    font-size: 16px; font-weight: 600; color: #1c1c1e; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .grid button:active { background: #e8eefc; }
+
+  /* 計票 */
   header {
-    position: sticky; top: 0; z-index: 5; background: #fff; padding: 12px 16px;
-    border-bottom: 1px solid #e2e4e8; display: flex; justify-content: space-between; align-items: center;
+    background: #fff; padding: 6px 10px; border-bottom: 1px solid #e2e4e8;
+    display: flex; justify-content: space-between; align-items: center; flex: none;
   }
-  header h1 { font-size: 18px; margin: 0; }
-  header .total { font-size: 14px; color: #666; }
-  header .total b { color: #1c1c1e; font-size: 18px; }
-  .list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .back { border: 0; background: transparent; color: #3478f6; font-size: 15px; padding: 6px 4px; }
+  #cityTitle { font-size: 17px; margin: 0; }
+  .total { font-size: 13px; color: #666; text-align: right; line-height: 1.2; }
+  .total b { color: #1c1c1e; font-size: 18px; }
+  .total .sub { font-size: 11px; }
+
+  .sortbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; flex: none; }
+  .sortbar span { font-size: 13px; color: #666; }
+  .seg { display: flex; background: #e4e6ea; border-radius: 9px; padding: 2px; }
+  .seg button {
+    border: 0; background: transparent; font-size: 13px; padding: 5px 12px; border-radius: 7px; color: #444;
+  }
+  .seg button.on { background: #fff; color: #1c1c1e; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .sortbar .spacer { flex: 1; }
+  .sortbar .reset { border: 0; background: transparent; color: #999; font-size: 13px; padding: 6px 4px; }
+
+  .list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 2px 10px calc(8px + env(safe-area-inset-bottom)); }
   .row {
-    background: #fff; border-radius: 14px; padding: 12px 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    flex: 1 1 0; min-height: 0; max-height: 92px;
+    background: #fff; border-radius: 12px; padding: 5px 6px 5px 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; align-items: center; gap: 8px;
   }
-  .who { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
-  .who .no {
-    background: #1c1c1e; color: #fff; border-radius: 8px; padding: 2px 10px;
-    font-weight: 700; font-size: 16px;
+  .who { flex: 0 0 36%; min-width: 0; display: flex; align-items: center; gap: 7px; }
+  .no {
+    flex: none; background: #1c1c1e; color: #fff; border-radius: 7px; min-width: 26px; text-align: center;
+    padding: 2px 0; font-weight: 700; font-size: 15px;
   }
-  .who .name { font-size: 18px; font-weight: 600; }
-  .who .party { font-size: 13px; color: #888; }
-  .ctrl { display: flex; align-items: center; gap: 10px; }
-  .ctrl button {
-    width: 72px; height: 64px; border: 0; border-radius: 14px; font-size: 36px; font-weight: 700;
-    line-height: 1; touch-action: manipulation; user-select: none;
-  }
+  .no.bad { background: #8e8e93; }
+  .txt { min-width: 0; line-height: 1.2; }
+  .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .party { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctrl { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: stretch; gap: 6px; }
+  .ctrl button { flex: 0 0 54px; border: 0; border-radius: 10px; font-size: 30px; font-weight: 700; line-height: 1; padding: 0; }
   .minus { background: #ffe3e0; color: #c62828; }
   .plus  { background: #dcf3df; color: #1b7a2b; }
   .ctrl button:active { transform: scale(.94); filter: brightness(.95); }
   .count {
-    flex: 1; height: 64px; min-width: 0; text-align: center; font-size: 40px; font-weight: 700;
-    border: 2px solid #e2e4e8; border-radius: 14px; background: #fafafa; color: inherit;
-    font-variant-numeric: tabular-nums; width: 100%;
+    flex: 1; min-width: 0; width: 100%; text-align: center; font-size: 30px; font-weight: 700;
+    border: 2px solid #e2e4e8; border-radius: 10px; background: #fafafa; color: inherit; padding: 0;
+    font-variant-numeric: tabular-nums;
   }
   .count:focus { outline: none; border-color: #3478f6; background: #fff; }
-  .tools { padding: 8px 16px; display: flex; justify-content: center; }
-  .tools button {
-    border: 0; background: transparent; color: #999; font-size: 14px; padding: 10px 16px;
-  }
-  .pick { padding: 12px; }
-  .pick h2 { font-size: 14px; color: #888; margin: 14px 4px 8px; font-weight: 600; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .grid button {
-    height: 56px; border: 0; border-radius: 12px; background: #fff; font-size: 17px; font-weight: 600;
-    color: #1c1c1e; box-shadow: 0 1px 3px rgba(0,0,0,.08); touch-action: manipulation;
-  }
-  .grid button:active { background: #e8eefc; }
-  .back { border: 0; background: transparent; color: #3478f6; font-size: 15px; padding: 6px 4px; }
-  .who .party { font-size: 13px; color: #888; }
-  .who .no.bad { background: #8e8e93; }
-  .hide { display: none !important; }
 </style>
 </head>
 <body>
-<div id="pick" class="pick">
-  <h1 style="font-size:20px;margin:6px 4px">監票計數</h1>
-  <div style="color:#666;font-size:14px;margin:0 4px">請選擇縣市長選舉</div>
-  <div id="regions"></div>
+<div id="pick" class="screen pick">
+  <h1>監票計數</h1>
+  <div class="hint">請選擇縣市長選舉</div>
+  <div class="regions" id="regions"></div>
 </div>
 
-<div id="counter" class="hide">
+<div id="counter" class="screen hide">
   <header>
     <div><button class="back" id="back">‹ 換縣市</button><h1 id="cityTitle" style="display:inline"></h1></div>
-    <div class="total">合計 <b id="total">0</b> 票<div id="sub" style="font-size:12px;text-align:right"></div></div>
+    <div class="total">合計 <b id="total">0</b> 票<div class="sub" id="sub"></div></div>
   </header>
+  <div class="sortbar">
+    <span>排序</span>
+    <div class="seg">
+      <button id="sortNo" class="on">號次</button>
+      <button id="sortVotes">得票數</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="reset" id="reset">全部歸零</button>
+  </div>
   <div class="list" id="list"></div>
-  <div class="tools"><button id="reset">全部歸零</button></div>
 </div>
 
-<script src="candidates.js?v=4"></script>
+<script src="candidates.js?v=5"></script>
 <script>
 (function () {
-  const LAST = "vote-counter-last-city";
+  const LAST = "vote-counter-last-city", SORT = "vote-counter-sort";
   const pickEl = document.getElementById("pick");
   const counterEl = document.getElementById("counter");
   const listEl = document.getElementById("list");
   const totalEl = document.getElementById("total");
-  let city = null, counts = {}, inputs = {};
+  let city = null, counts = {}, inputs = {}, rows = {}, sortMode = "no", timer = null;
 
   const key = c => "vote-counter-v2-" + c;
   const store = {
@@ -93,9 +117,10 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   };
 
-  // 縣市選擇畫面
+  // 縣市選擇
   const regionsEl = document.getElementById("regions");
   REGIONS.forEach(r => {
+    const box = document.createElement("div");
     const h = document.createElement("h2"); h.textContent = r.title;
     const g = document.createElement("div"); g.className = "grid";
     r.cities.forEach(c => {
@@ -103,7 +128,8 @@
       b.onclick = () => open(c);
       g.appendChild(b);
     });
-    regionsEl.append(h, g);
+    box.append(h, g);
+    regionsEl.appendChild(box);
   });
 
   function save() {
@@ -114,15 +140,40 @@
     document.getElementById("sub").textContent = "有效 " + valid + "・廢票 " + bad;
   }
 
+  // 排序：號次 或 得票數（同票看號次）；廢票永遠在最下面
+  function order() {
+    const nos = CANDIDATES[city].map((_, i) => i + 1);
+    if (sortMode === "votes") nos.sort((a, b) => (counts[b] || 0) - (counts[a] || 0) || a - b);
+    nos.push("x");
+    nos.forEach(n => listEl.appendChild(rows[n]));
+  }
+
+  // 得票數排序：停手一下才重排，避免連點時列表跳動點錯
+  function scheduleOrder() {
+    if (sortMode !== "votes") return;
+    clearTimeout(timer);
+    timer = setTimeout(order, 1200);
+  }
+
   function set(no, v) {
     v = Math.max(0, Math.floor(Number(v)) || 0);
     counts[no] = v;
     inputs[no].value = v;
     save();
+    scheduleOrder();
+  }
+
+  function setSort(m) {
+    sortMode = m;
+    store.set(SORT, m);
+    document.getElementById("sortNo").classList.toggle("on", m === "no");
+    document.getElementById("sortVotes").classList.toggle("on", m === "votes");
+    clearTimeout(timer);
+    if (city) order();
   }
 
   function open(c) {
-    city = c; inputs = {}; counts = {};
+    city = c; inputs = {}; rows = {}; counts = {};
     try { counts = JSON.parse(store.get(key(c))) || {}; } catch (e) {}
     store.set(LAST, c);
     document.getElementById("cityTitle").textContent = c + "長";
@@ -133,7 +184,8 @@
       const row = document.createElement("div");
       row.className = "row";
       row.innerHTML =
-        '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span><span class="name"></span><span class="party"></span></div>' +
+        '<div class="who"><span class="no' + (no === "x" ? ' bad' : '') + '">' + (no === "x" ? "廢" : no) + '</span>' +
+          '<div class="txt"><div class="name"></div><div class="party"></div></div></div>' +
         '<div class="ctrl">' +
           '<button class="minus" aria-label="減一票">−</button>' +
           '<input class="count" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">' +
@@ -142,7 +194,7 @@
       row.querySelector(".name").textContent = name;
       row.querySelector(".party").textContent = party;
       const input = row.querySelector(".count");
-      inputs[no] = input;
+      inputs[no] = input; rows[no] = row;
       input.value = counts[no] || 0;
       row.querySelector(".minus").onclick = () => set(no, (counts[no] || 0) - 1);
       row.querySelector(".plus").onclick = () => set(no, (counts[no] || 0) + 1);
@@ -150,15 +202,18 @@
       input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, ""); });
       input.addEventListener("blur", () => set(no, input.value));
       input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
-      listEl.appendChild(row);
     });
     save();
+    order();
     pickEl.classList.add("hide");
     counterEl.classList.remove("hide");
-    window.scrollTo(0, 0);
   }
 
+  document.getElementById("sortNo").onclick = () => setSort("no");
+  document.getElementById("sortVotes").onclick = () => setSort("votes");
+
   document.getElementById("back").onclick = () => {
+    clearTimeout(timer);
     counterEl.classList.add("hide");
     pickEl.classList.remove("hide");
     store.set(LAST, "");
@@ -169,6 +224,8 @@
       [...CANDIDATES[city].map((_, i) => i + 1), "x"].forEach(n => set(n, 0));
   };
 
+  const savedSort = store.get(SORT);
+  setSort(savedSort === "votes" ? "votes" : "no");
   const last = store.get(LAST);
   if (last && CANDIDATES[last]) open(last);
 })();
