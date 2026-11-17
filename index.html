@@ -143,7 +143,7 @@
     <div class="hint" id="pickHint">請選擇縣市長選舉</div>
     <button class="gear" id="gearPick" aria-label="設定">⚙ 設定</button>
   </div>
-  <div class="seg modeseg"><button id="modeMayor" class="on">縣市長</button><button id="modeCouncil">議員</button></div>
+  <div class="seg modeseg"><button id="modeMayor" class="on">縣市長</button><button id="modeCouncil">議員</button><button id="modeRef">公投</button></div>
   <div class="regions cities" id="regions"></div>
 </div>
 
@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<script src="candidates.js?v=17"></script>
+<script src="candidates.js?v=18"></script>
 <script>
 (function () {
   const LAST = "vote-counter-last", SORT = "vote-counter-sort", POS = "vote-counter-pos", BAD = "vote-counter-bad", MODE = "vote-counter-mode";
@@ -204,8 +204,23 @@
 
   // ── 選縣市 ──
   function renderCities() {
-    const box = $("regions");
+    const box = $("regions"); box.style.justifyContent = mode === "ref" ? "flex-start" : "";
     box.innerHTML = "";
+    if (mode === "ref") {
+      const g = document.createElement("div"); g.className = "grid"; g.style.gridTemplateColumns = "1fr";
+      REFERENDUM.forEach((r, i) => {
+        const b = document.createElement("button");
+        b.innerHTML = '<div class="t"></div><div class="a"></div><div class="n">同意／不同意</div>';
+        b.querySelector(".t").textContent = "第" + r.no + "案";
+        b.querySelector(".a").textContent = r.name;
+        b.onclick = () => openCounter({ mode: "ref", di: i });
+        g.appendChild(b);
+      });
+      const wrap = document.createElement("div");
+      const h2 = document.createElement("h2"); h2.textContent = "全國性公投";
+      wrap.append(h2, g); box.appendChild(wrap);
+      return;
+    }
     REGIONS.forEach(r => {
       const wrap = document.createElement("div");
       const h = document.createElement("h2"); h.textContent = r.title;
@@ -221,11 +236,12 @@
     });
   }
   function setMode(m) {
-    mode = m === "council" ? "council" : "mayor";
+    mode = m === "council" || m === "ref" ? m : "mayor";
     store.set(MODE, mode);
     $("modeMayor").classList.toggle("on", mode === "mayor");
     $("modeCouncil").classList.toggle("on", mode === "council");
-    $("pickHint").textContent = mode === "mayor" ? "請選擇縣市長選舉" : "議員：目前有台北市、新北市、基隆市、新竹縣、桃園市、新竹市、台中市、台南市、高雄市";
+    $("modeRef").classList.toggle("on", mode === "ref");
+    $("pickHint").textContent = mode === "mayor" ? "請選擇縣市長選舉" : mode === "ref" ? "請選擇公投案（全國性，與選舉同日 11/28）" : "議員：目前有台北市、新北市、基隆市、新竹縣、桃園市、新竹市、台中市、台南市、高雄市";
     renderCities();
   }
 
@@ -287,7 +303,10 @@
   const PARTY = { "國民黨": " kmt", "民進黨": " dpp", "民眾黨": " tpp" };
   function openCounter(c) {
     ctx = c;
-    if (c.mode === "mayor") {
+    if (c.mode === "ref") {
+      const r = REFERENDUM[c.di];
+      cur = { list: r.list, key: "vote-counter-v2-公投-" + r.no, title: "公投第" + r.no + "案　" + r.name };
+    } else if (c.mode === "mayor") {
       cur = { list: CANDIDATES[c.city], key: "vote-counter-v2-" + c.city, title: c.city + "長" };
     } else {
       const d = COUNCIL[c.city][c.di];
@@ -298,7 +317,7 @@
     remember(c);
     $("cityTitle").textContent = cur.title;
     $("cityTitle").classList.toggle("small", c.mode === "council");
-    $("back").textContent = c.mode === "council" ? "‹ 選區" : "‹ 換縣市";
+    $("back").textContent = c.mode === "council" ? "‹ 選區" : c.mode === "ref" ? "‹ 返回" : "‹ 換縣市";
     listEl.innerHTML = "";
     const entries = cur.list.map(([name, party], i) => [i + 1, name, party]);
     entries.push(["x", "廢票", ""]);
@@ -395,6 +414,7 @@
   // ── 模式切換、初始化 ──
   $("modeMayor").onclick = () => setMode("mayor");
   $("modeCouncil").onclick = () => setMode("council");
+  $("modeRef").onclick = () => setMode("ref");
 
   setBad(store.get(BAD));
   setPos(["left", "swap"].includes(store.get(POS)) ? store.get(POS) : "right");
@@ -403,7 +423,8 @@
 
   let last = null;
   try { last = JSON.parse(store.get(LAST)); } catch (e) {}
-  if (last && last.mode === "mayor" && CANDIDATES[last.city]) openCounter(last);
+  if (last && last.mode === "ref" && REFERENDUM[last.di]) { setMode("ref"); openCounter(last); }
+  else if (last && last.mode === "mayor" && CANDIDATES[last.city]) openCounter(last);
   else if (last && last.mode === "council" && COUNCIL[last.city]) {
     setMode("council");
     if (COUNCIL[last.city][last.di]) openCounter(last); else openDist(last.city);
